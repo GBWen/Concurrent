@@ -7,10 +7,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 
 @Slf4j
-public class ConcurrentSimulationTest {
-    private int count = 0;
+public class ConutTest {
+    private static int count1 = 0;
+    private AtomicInteger count2 = new AtomicInteger(0);
+    private LongAdder count3 = new LongAdder();
+    private static int count4 = 0;
+    private volatile static int count5 = 0;
 
     @Test
     public void myTest() throws InterruptedException {
@@ -19,11 +25,15 @@ public class ConcurrentSimulationTest {
         ExecutorService executorService = Executors.newCachedThreadPool();
         final Semaphore semaphore = new Semaphore(THREAD_TOTAL);
         final CountDownLatch countDownLatch = new CountDownLatch(CLIENT_TOTAL);
-        for (int i = 0; i < CLIENT_TOTAL ; i++) {
-            executorService.execute(() ->{
+        for (int i = 0; i < CLIENT_TOTAL; i++) {
+            executorService.execute(() -> {
                 try {
                     semaphore.acquire();
-                    count++;
+                    count1++;
+                    count2.getAndAdd(1);
+                    count3.add(1);
+                    add();
+                    count5++;
                     semaphore.release();
                 } catch (Exception e) {
                     log.error("Exception!", e);
@@ -33,7 +43,14 @@ public class ConcurrentSimulationTest {
         }
         countDownLatch.await();
         executorService.shutdown();
-        log.info("count = " + count);
-        // count < 5000
+        log.info("count1 = " + count1);       // < 5000
+        log.info("count2 = " + count2.get()); // = 5000
+        log.info("count3 = " + count3);       // = 5000
+        log.info("count4 = " + count4);       // = 5000
+        log.info("count5 = " + count5);       // < 5000
+    }
+
+    private static synchronized void add() {
+        count4++;
     }
 }
